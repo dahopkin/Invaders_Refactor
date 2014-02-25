@@ -39,7 +39,7 @@ namespace Invaders
             foreach (Star star in starField)
             {
                 g.DrawEllipse(star.pen, star.point.X, star.point.Y, 1, 1);
-            }
+            } // end foreach 
         } // end method Draw
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Invaders
                     random.Next(boundaries.Bottom));
                 Star newStar = new Star(randomPointWithinBoundaries, RandomColorPen(random));
                 starField.Add(newStar);
-            }
+            } // end for 
         } // end method AddStars
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace Invaders
                     penToReturn.Brush = Brushes.CornflowerBlue;
                     break;
                 default: break;
-            }
+            } // end switch 
             return penToReturn;
         }// end method RandomPen
     }

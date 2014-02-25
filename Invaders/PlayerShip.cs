@@ -40,7 +40,7 @@ namespace Invaders
             set { 
                 alive = value;
                 deadShipStartTime = DateTime.Now;
-            }
+            } // end set 
         } // end property Alive
 
         /// <summary>
@@ -60,17 +60,16 @@ namespace Invaders
                 if(duration.Seconds < 3){
                     if (deadShipHeight > 0) deadShipHeight -= 2;
                     g.DrawImage(deadShipImage, Location.X, Location.Y, Area.Width, deadShipHeight);
-                }
+                } // end if 
                 else{
                     Alive = true;
                     deadShipHeight = image.Height;
                     g.DrawImageUnscaled(image, Location);
-                }
-            } 
+                } // end else 
+            } // end if 
             else {
-
                 g.DrawImageUnscaled(image, Location);
-            }
+            } // end else 
         } // end method Draw
 
         /// <summary>
@@ -94,7 +93,7 @@ namespace Invaders
 
                 default:
                     break;
-            }
+            } // end switch 
         } // end method Move
     }
 }

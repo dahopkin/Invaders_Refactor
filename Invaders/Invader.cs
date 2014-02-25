@@ -62,7 +62,7 @@ namespace Invaders
                     break;
                 default:
                     break;
-            }
+            } // end switch 
         } // end method Move
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace Invaders
             };
 
             return bugImages;
-        }
+        } // end method GetBugImages
 
         /// <summary>
         /// Returns a bitmap array of all the Saucer invader's images, resized to the standard size.
@@ -133,7 +133,7 @@ namespace Invaders
             };
 
             return saucerImages;
-        }
+        } // end method GetSaucerImages
 
         /// <summary>
         /// Returns a bitmap array of all the Satellite invader's images, resized to the standard size.
@@ -149,7 +149,7 @@ namespace Invaders
             };
 
             return satelliteImages;
-        }
+        } // end method GetSatelliteImages
 
         /// <summary>
         /// Returns a bitmap array of all the Spaceship invader's images, resized to the standard size.
@@ -165,7 +165,7 @@ namespace Invaders
             };
 
             return spaceshipImages;
-        }
+        } // end method GetSpaceShipImages
 
         /// <summary>
         /// Returns a bitmap array of all the Star invader's images, resized to the standard size.
@@ -181,7 +181,7 @@ namespace Invaders
             };
 
             return starImages;
-        }
+        } // end method GetStarImages
 
         
     }

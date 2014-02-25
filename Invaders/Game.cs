@@ -23,6 +23,9 @@ namespace Invaders
         private int framesSkipped = 0;
         private int framesToSkip = 7; // number of frames to wait before rendering.
         private int maxNumberOfWaves = 3;
+        private int invaderDistanceFromEdge = 100;
+        private int playerDistanceFromEdge = 10;
+        private List<Explosion> deadInvaderExplosions;
 
         private Rectangle boundaries; // the game's entire area for rendering.
         private Random random; // All functions using a random use this one instance.
@@ -35,6 +38,7 @@ namespace Invaders
         private List<Shot> playerShots;
         private List<Bitmap> livesLeftDisplay;
         private List<Shot> invaderShots;
+        private List<Shield> shields;
 
         private Stars stars;
 
@@ -56,6 +60,7 @@ namespace Invaders
             this.invaderShots = new List<Shot>();
             this.invaders = new List<Invader>();
             this.livesLeftDisplay = new List<Bitmap>();
+            this.deadInvaderExplosions = new List<Explosion>();
             this.stars = new Stars(boundaries, random);
             for (int i = 0; i < livesLeft; i++)
                 livesLeftDisplay.Add(playerShip.GetImage());
@@ -80,7 +85,7 @@ namespace Invaders
             if (playerShots.Count < 2) {
                 Shot newPlayerShot = new Shot(playerShip.TopMiddle,Direction.Up, boundaries);
                 playerShots.Add(newPlayerShot);
-            } 
+            } // end if 
         } // end method FireShot
 
         /// <summary>
@@ -93,7 +98,7 @@ namespace Invaders
 
         /// <summary>
         /// This method moves onscreen Player/Invader shots, makes the invaders shoot, 
-        /// checks shot collisions, checks to see if invaders are at the bottom of the screen, and
+        /// checks shot and shield collisions, checks to see if invaders are at the bottom of the screen, and
         /// goes to the next Wave of invaders if the player has shot them all.
         /// If the player is not alive at the moment, it won't do anything.
         /// </summary>
@@ -105,8 +110,9 @@ namespace Invaders
             MoveInvaderShots();
 
             MoveInvaders();
-            ReturnFire(); 
-           
+            ReturnFire();
+
+            CheckForShieldCollisions();
             CheckForInvaderCollisions();
             CheckForPlayerCollisions();
             CheckForInvadersAtBottomOfScreen();
@@ -127,7 +133,7 @@ namespace Invaders
 
         /// <summary>
         /// This method moves all player shots up, removing
-        /// them from the invader shots list if they're past the boundaries.
+        /// them from the player shots list if they're past the boundaries.
         /// </summary>
         private void MovePlayerShots()
         {
@@ -143,7 +149,7 @@ namespace Invaders
         public void MovePlayer(Direction directionToMove)
         {
             if (playerShip.Alive){
-                if(!WillTouchBorder(playerShip.Area, directionToMove, 10))
+                if(!WillTouchBorder(playerShip.Area, directionToMove, playerDistanceFromEdge))
                 playerShip.Move(directionToMove);
             }
         } // end method MovePlayer
@@ -169,12 +175,35 @@ namespace Invaders
             
             foreach (Shot shot in invaderShots)
                 shot.Draw(g);
+
+            DrawExplosions(g);
+
+            DrawShields(g);
             
             DrawScoreAndWaveProgress(g);
 
             DrawLivesLeft(g);
 
         } // end method Draw
+
+        /// <summary>
+        /// This method draws all of the game's explosions onto the screen if they're exploding.
+        /// </summary>
+        /// <param name="g">The graphics object to draw onto.</param>
+        private void DrawExplosions(Graphics g)
+        {
+            foreach (Explosion explosion in deadInvaderExplosions)
+                explosion.Draw(g);
+        } // end method DrawExplosions
+
+        /// <summary>
+        /// This method draws all of the game's shields onto the screen.
+        /// </summary>
+        /// <param name="g">The graphics object to draw onto.</param>
+        private void DrawShields(Graphics g) {
+            foreach (Shield shield in shields)
+                shield.Draw(g);
+        } // end method DrawShields
 
         /// <summary>
         /// This method draws the score and wave progress onto the upper left of the screen.
@@ -190,7 +219,7 @@ namespace Invaders
                 Font scoreFont = new Font("Arial", 12, FontStyle.Bold);
                 Point scorePoint = new Point(25, 25);
                 g.DrawString(scoreString, scoreFont, Brushes.Red, scorePoint);
-        }
+        } // end method DrawScoreAndWaveProgress
 
         /// <summary>
         /// This method draws the amount of ships the player has left onto the upper right of the screen.
@@ -205,7 +234,7 @@ namespace Invaders
                 g.DrawImage(shipToDraw, drawPoint);
                 Point newLifePoint = new Point(drawPoint.X + xSkip, drawPoint.Y);
                 drawPoint = newLifePoint;
-            }
+            } // end foreach 
         } // end method DrawLivesLeft
 
         /// <summary>
@@ -216,13 +245,14 @@ namespace Invaders
             if (++currentInvaderWave > maxNumberOfWaves) {
                 OnGameOver(new EventArgs());
                 return;
-            }
+            } // end if 
             framesToSkip--;
             //playerShip.Area.Location = playerShipStartingLocation;
             invaders = new List<Invader>();
             invaderDirection = Direction.Right;
             invaderShots = new List<Shot>();
             playerShots = new List<Shot>();
+            ResetShields();
             int xMove = 85;
             int yMove = 50;
             int yPosition = 50;
@@ -252,10 +282,94 @@ namespace Invaders
                 Invader newInvader = new Invader(invaderType, new Point(xPosition, yPosition), score);
                 invaders.Add(newInvader);
                 xPosition += xMove;
-            }
+            } // end for 
             yPosition += yMove;
             return yPosition;
         } // end method AddInvaderRow
+
+        /// <summary>
+        /// This method fills the shield list with 7 shields after emptying it.
+        /// </summary>
+        /// <param name="g">The graphics object to draw onto.</param>
+        private void ResetShields() {
+            shields = new List<Shield>();
+            Point startPoint = new Point(boundaries.Left + invaderDistanceFromEdge, boundaries.Bottom - (playerShip.Area.Height*5));
+            Point currentPoint = startPoint;
+            int numberOfShields = 7;
+            int shieldMove = (int)(((boundaries.Width - 2*invaderDistanceFromEdge) 
+                - (numberOfShields * (2 * ShieldBlock.BlockWidth))) / numberOfShields) 
+                + (2 * ShieldBlock.BlockWidth);
+            for (int i = 0; i < numberOfShields; i++)
+            {
+                // create a new shield at the current point.
+                Shield newShield = new Shield(currentPoint);
+                // add the shield to the shields list.
+                shields.Add(newShield);
+                // advance the current point by the distance determined earlier.
+                currentPoint.X += shieldMove;
+            } // end for 
+        } // end method ResetShields
+
+        /// <summary>
+        /// This method checks to see if any shield-destroying collision (player/invader shots, invader bumps)
+        /// have happened. Shield blocks are removed as they do.
+        /// </summary>
+        private void CheckForShieldCollisions() {
+            CheckForInvaderShotShieldCollisions();
+            CheckForPlayerShotShieldCollisions();
+            CheckForInvaderShieldCollisions();
+        } // end method CheckForShieldCollisions
+
+        /// <summary>
+        /// This method checks to see if an invader has bumped into a shield. 
+        /// If so, the specific block it bumped into will fade.
+        /// </summary>
+        private void CheckForInvaderShieldCollisions()
+        {
+            for (int i = invaders.Count - 1; i >= 0; i--)
+            {
+                List<Point> collisionLocations = invaders[i].CollisionPoints;
+                var shieldCollisions =
+                    from hitShield in shields
+                    where hitShield.WasHit(collisionLocations)
+                    select hitShield;
+                if (shieldCollisions.Count() > 0) { return; }
+            } // end for 
+        } // end method CheckForInvaderShieldCollisions
+
+        /// <summary>
+        /// This method checks to see if a player's shot has hit a shield. 
+        /// If so, the specific block it hit will fade.
+        /// </summary>
+        private void CheckForPlayerShotShieldCollisions()
+        {
+            for (int i = playerShots.Count - 1; i >= 0; i--)
+            {
+                Point shotLocation = playerShots[i].Location;
+                var shieldCollisions =
+                    from hitShield in shields
+                    where hitShield.WasHit(shotLocation)
+                    select hitShield;
+                if (shieldCollisions.Count() > 0) playerShots.Remove(playerShots[i]);
+            } // end for 
+        } //end method CheckForPlayerShotShieldCollisions
+
+        /// <summary>
+        /// This method checks to see if an invader's shot has hit a shield. 
+        /// If so, the specific block it hit will fade.
+        /// </summary>
+        private void CheckForInvaderShotShieldCollisions()
+        {
+            for (int i = invaderShots.Count - 1; i >= 0; i--)
+            {
+                Point shotLocation = invaderShots[i].Location;
+                var shieldCollisions =
+                    from hitShield in shields
+                    where hitShield.WasHit(shotLocation)
+                    select hitShield;
+                if (shieldCollisions.Count() > 0) invaderShots.Remove(invaderShots[i]);
+            } // end for 
+        } // end method CheckForInvaderShotShieldCollisions
 
         /// <summary>
         /// This method moves invaders to within 100px of the game form's edge, then
@@ -272,7 +386,7 @@ namespace Invaders
                 
                 var invadersOnBorder =
                       from invader in invaders
-                      where WillTouchBorder(invader.Area, invaderDirection, 100)
+                      where WillTouchBorder(invader.Area, invaderDirection, invaderDistanceFromEdge)
                       select invader;
                 if (invadersOnBorder.Count() > 0)
                 {
@@ -382,11 +496,34 @@ namespace Invaders
                         deadInvaders.Add(deadInvader);
                     foreach (Invader deadInvader in deadInvaders) {
                         score += deadInvader.Score;
-                        invaders.Remove(deadInvader);
+                        KillInvader(deadInvader);
                     } // end foreach
                 } // end if
 			} // end for
         }  // end method CheckForInvaderCollisions
+
+        /// <summary>
+        /// This method removes an invader from the invaders list and 
+        /// triggers an explosion where the invader died.
+        /// </summary>
+        /// <param name="deadInvader"></param>
+        private void KillInvader(Invader deadInvader)
+        {
+            Explosion newDeadInvaderExplosion = new Explosion(deadInvader.Location, random);
+            deadInvaderExplosions.Add(newDeadInvaderExplosion);
+            invaders.Remove(deadInvader);
+        } // end method KillInvader
+
+        /// <summary>
+        /// This method removes explosions from the explosion list when they're done exploding.
+        /// </summary>
+        private void RemoveExplosions() {
+            for (int i = deadInvaderExplosions.Count - 1; i >= 0; i--)
+            {
+                if (!deadInvaderExplosions[i].Exploding)
+                    deadInvaderExplosions.Remove(deadInvaderExplosions[i]);
+            } // end for 
+        } // end method RemoveExplosions
 
         /// <summary>
         /// This method checks to see if any invaders are where the player is

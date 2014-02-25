@@ -30,6 +30,8 @@ namespace Invaders
             StartNewGame();
         } // end constructor method Form1
 
+        /*This method responds resets all the game's relevant variables in order to 
+         start a new game.*/
         void StartNewGame() {
             game = new Game(this.ClientRectangle, random);
             game.GameOver += new EventHandler(game_GameOver);
@@ -40,7 +42,7 @@ namespace Invaders
             gameTimer.Enabled = true;
         } // end method StartNewGame
 
-
+        /*This method responds to the game's GameOver event.*/
         void game_GameOver(object sender, EventArgs e)
         {
             gameTimer.Stop();
@@ -48,6 +50,7 @@ namespace Invaders
             Invalidate();
         } // end method game_GameOver
 
+        /*This method animates everything. Animation keeps going even if gameplay stops.*/
         private void animationTimer_Tick(object sender, EventArgs e)
         {
             if (animationCounter == 3) reverseInvaderAnimation = true;
@@ -77,8 +80,8 @@ namespace Invaders
                 {
                     StartNewGame();
                     return;
-                } 
-            }
+                } // end if 
+            } // end if 
 
             if (e.KeyCode == Keys.Space)
                game.FirePlayerShot();
@@ -89,12 +92,17 @@ namespace Invaders
             keysPressed.Add(e.KeyCode);
         } // end method Form1_KeyDown
 
+        /*This method removes keys not being pressed anymore from the
+         * keyspressed list.*/
         private void Form1_KeyUp(object sender, KeyEventArgs e)
         {
             if (keysPressed.Contains(e.KeyCode))
                 keysPressed.Remove(e.KeyCode);
         } // end method Form1_KeyUp
 
+        /*This method processes keystrokes into game actions.
+         the left/right keys move the player left/right, and 
+         space shoots a shot.*/
         private void gameTimer_Tick(object sender, EventArgs e)
         {
             game.Go();
@@ -110,30 +118,36 @@ namespace Invaders
                     game.MovePlayer(Direction.Right);
                     return;
                 } // end else if
-
             } // end foreach
-            
         } // end method gameTimer_Tick
 
+        /*This method draws everything on the screen through the game's 
+         draw method, and if the game's over, display the game
+         over screen.*/
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
-            // check gameover at some point.
             Graphics g = e.Graphics;
 
             game.Draw(g, animationCounter);
 
             if (gameOver) {
-                string playAgain = "Press S to start a new game or Q to quit";
-
-                Font playAgainFont = new Font("Arial", 12);
-                Font gameOverTopFont = new Font("Arial", 30, FontStyle.Bold);
-
-                Point gameOverPoint = new Point((ClientRectangle.Width/3),(ClientRectangle.Height/2));
-                Point playAgainPoint = new Point(ClientRectangle.Width/2, (int)((double)(ClientRectangle.Height*.9)));
-                g.DrawString("GAME OVER!", gameOverTopFont, Brushes.Yellow, gameOverPoint);
-                g.DrawString(playAgain, playAgainFont, Brushes.Yellow, playAgainPoint);
-            }
+                DrawGameOver(g);
+            } // end if 
         } // end method Form1_Paint
+        
+        /*This method draws the game over graphics onto the screen.*/
+        private void DrawGameOver(Graphics g)
+        {
+            string playAgain = "Press S to start a new game or Q to quit";
+
+            Font playAgainFont = new Font("Arial", 12);
+            Font gameOverTopFont = new Font("Arial", 30, FontStyle.Bold);
+
+            Point gameOverPoint = new Point((ClientRectangle.Width / 3), (ClientRectangle.Height / 2));
+            Point playAgainPoint = new Point(ClientRectangle.Width / 2, (int)((double)(ClientRectangle.Height * .9)));
+            g.DrawString("GAME OVER!", gameOverTopFont, Brushes.Yellow, gameOverPoint);
+            g.DrawString(playAgain, playAgainFont, Brushes.Yellow, playAgainPoint);
+        } // end method DrawGameOver
 
         private void Form1_Load(object sender, EventArgs e)
         {
