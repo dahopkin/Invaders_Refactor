@@ -23,7 +23,7 @@ namespace Invaders
         /// Initializes a new instance of the PlayerShip class using a Point.
         /// </summary>
         /// <param name="location">The player ship's starting location.</param>
-        public PlayerShip(Point location) {
+        public PlayerShip(Point location) : base(location){
             this.Location = location;
             image = ResizeImage(Properties.Resources.player, 40, 40);
             Alive = true;

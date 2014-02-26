@@ -6,40 +6,26 @@ using System.Drawing;
 
 namespace Invaders
 {
-    class Explosion
+    class Explosion : AreaUser
     {
         private List<Star> explosionParticles;
         private DateTime explosionStartTime;
         private int drawExplodeDistance = 20; // max amount any explosion star can move when a frame is rendered.
         Random random;
-        private Size explosionSize = new Size(40, 40);
+        //private Size explosionSize = new Size(40, 40);
         public bool Exploding{ get; set;}
-
-
-        /// <summary>
-        /// Gets the current Point where the object is located.
-        /// </summary>
-        public Point Location { get; set; }
-
-        /// <summary>
-        /// Gets a rectangle dependent on current explosion location.
-        /// </summary>
-        public Rectangle Area
-        {
-            get { return new Rectangle(Location, explosionSize); }
-        } // end property Area
 
         /// <summary>
         /// Instantiates an instance of the Explosion class from a starting location and a Random object.
         /// </summary>
         /// <param name="boundaries">A rectangle representing the gaming area</param>
         /// <param name="random">An instance of the Random class for use in functions needing a random.</param>
-        public Explosion(Point location, Random random)
+        public Explosion(Point location, Random random) : base(location, 40, 40)
         {
             this.Location = location;
             this.random = random;
             explosionParticles = new List<Star>();
-            AddParticles(300);
+            AddParticles(500);
             this.explosionStartTime = DateTime.Now;
             Exploding = true;
         } // end constructor method Explosion

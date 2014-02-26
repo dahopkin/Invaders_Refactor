@@ -25,13 +25,19 @@ namespace Invaders
         private int maxNumberOfWaves = 3;
         private int invaderDistanceFromEdge = 100;
         private int playerDistanceFromEdge = 10;
-        private List<Explosion> deadInvaderExplosions;
+        private bool mothershipHasAppeared;
+        
 
         private Rectangle boundaries; // the game's entire area for rendering.
         private Random random; // All functions using a random use this one instance.
 
         private Point playerShipStartingLocation;
+        private Point mothershipStartingLocation;
+        private Rectangle motherShipTravelArea;
+        private Direction motherShipDirection;
         private Direction invaderDirection;
+        private MotherShip motherShip;
+
         private List<Invader> invaders;
 
         private PlayerShip playerShip;
@@ -39,6 +45,9 @@ namespace Invaders
         private List<Bitmap> livesLeftDisplay;
         private List<Shot> invaderShots;
         private List<Shield> shields;
+        private List<Explosion> deadInvaderExplosions;
+        private List<Explosion> otherExplosions;
+        private List<ScoreFlash> deadInvaderScores;
 
         private Stars stars;
 
@@ -55,18 +64,28 @@ namespace Invaders
             this.boundaries = boundaries;
             this.random = random;
             this.playerShipStartingLocation = new Point(boundaries.Right - 100, boundaries.Bottom - 50);
+            this.mothershipStartingLocation = new Point(boundaries.Left + 40, 50);
+            this.motherShipTravelArea = new Rectangle(new Point(boundaries.Left, 50), new Size(boundaries.Width, 40));
             this.playerShip = new PlayerShip(playerShipStartingLocation);
             this.playerShots = new List<Shot>();
             this.invaderShots = new List<Shot>();
             this.invaders = new List<Invader>();
             this.livesLeftDisplay = new List<Bitmap>();
             this.deadInvaderExplosions = new List<Explosion>();
+            this.otherExplosions = new List<Explosion>();
+            this.deadInvaderScores = new List<ScoreFlash>();
+            this.motherShipDirection = Direction.Right;
+            this.motherShip = null;
+            this.mothershipHasAppeared = false;
             this.stars = new Stars(boundaries, random);
             for (int i = 0; i < livesLeft; i++)
                 livesLeftDisplay.Add(playerShip.GetImage());
             NextWave();
         } // end constructor method Game
 
+        private void ResetValuesForNextRound() { 
+
+        }
         /// <summary>
         /// This method triggers the game over event.
         /// </summary>
@@ -81,7 +100,6 @@ namespace Invaders
         /// This method adds a shot to the player's shot list.
         /// </summary>
         public void FirePlayerShot() {
-
             if (playerShots.Count < 2) {
                 Shot newPlayerShot = new Shot(playerShip.TopMiddle,Direction.Up, boundaries);
                 playerShots.Add(newPlayerShot);
@@ -112,10 +130,15 @@ namespace Invaders
             MoveInvaders();
             ReturnFire();
 
+            //MoveMotherShip();
+
             CheckForShieldCollisions();
             CheckForInvaderCollisions();
             CheckForPlayerCollisions();
             CheckForInvadersAtBottomOfScreen();
+            CheckToAddMotherShip();
+
+            RemoveInactiveEffects();
 
             if (invaders.Count == 0) NextWave();
         } // end method Go
@@ -149,7 +172,7 @@ namespace Invaders
         public void MovePlayer(Direction directionToMove)
         {
             if (playerShip.Alive){
-                if(!WillTouchBorder(playerShip.Area, directionToMove, playerDistanceFromEdge))
+                if(!IsTouchingBorder(playerShip.Area, directionToMove, playerDistanceFromEdge))
                 playerShip.Move(directionToMove);
             }
         } // end method MovePlayer
@@ -178,6 +201,8 @@ namespace Invaders
 
             DrawExplosions(g);
 
+            DrawDeadInvaderScores(g);
+
             DrawShields(g);
             
             DrawScoreAndWaveProgress(g);
@@ -194,6 +219,20 @@ namespace Invaders
         {
             foreach (Explosion explosion in deadInvaderExplosions)
                 explosion.Draw(g);
+            
+            foreach (Explosion explosion in otherExplosions)
+                explosion.Draw(g);
+
+        } // end method DrawExplosions
+
+        /// <summary>
+        /// This method draws all of the game's scores from dead invaders onto the screen if they're showing.
+        /// </summary>
+        /// <param name="g">The graphics object to draw onto.</param>
+        private void DrawDeadInvaderScores(Graphics g)
+        {
+            foreach (ScoreFlash scoreflash in deadInvaderScores)
+                scoreflash.Draw(g);
         } // end method DrawExplosions
 
         /// <summary>
@@ -252,6 +291,13 @@ namespace Invaders
             invaderDirection = Direction.Right;
             invaderShots = new List<Shot>();
             playerShots = new List<Shot>();
+            deadInvaderExplosions = new List<Explosion>();
+            deadInvaderScores = new List<ScoreFlash>();
+            mothershipStartingLocation = new Point(boundaries.Left + 40, 50);
+            motherShipTravelArea = new Rectangle(new Point(boundaries.Left, 50), new Size(boundaries.Width, 40));
+            motherShipDirection = Direction.Right;
+            motherShip = null;
+            mothershipHasAppeared = false;
             ResetShields();
             int xMove = 85;
             int yMove = 50;
@@ -279,7 +325,7 @@ namespace Invaders
                         
             for (int j = 1; j <= 6; j++)
             {
-                Invader newInvader = new Invader(invaderType, new Point(xPosition, yPosition), score);
+                Invader newInvader = new InvaderGrunt(invaderType, new Point(xPosition, yPosition), score);
                 invaders.Add(newInvader);
                 xPosition += xMove;
             } // end for 
@@ -377,30 +423,87 @@ namespace Invaders
         /// </summary>
         private void MoveInvaders()
         {
-
             /*If this frame should be skipped, return.*/
             if (++framesSkipped < framesToSkip)
                 return;
             else
             {
-                
-                var invadersOnBorder =
-                      from invader in invaders
-                      where WillTouchBorder(invader.Area, invaderDirection, invaderDistanceFromEdge)
-                      select invader;
-                if (invadersOnBorder.Count() > 0)
+                List<Invader> invaderGrunts = new List<Invader>();
+                foreach (Invader invader in invaders)
+                    if (invader is InvaderGrunt)
+                        invaderGrunts.Add(invader);
+
+                var invadergruntsOnBorder =
+                      from invadergrunt in invaderGrunts
+                      where IsTouchingBorder(invadergrunt.Area, invaderDirection, invaderDistanceFromEdge)
+                      select invadergrunt;
+                if (invadergruntsOnBorder.Count() > 0)
                 {
-                    foreach (Invader invader in invaders)
+                    foreach (Invader invader in invaderGrunts)
                         invader.Move(Direction.Down);
                     invaderDirection = (invaderDirection == Direction.Left ? Direction.Right : Direction.Left);
                 } // end if
-                else 
-                foreach (Invader invader in invaders)
-                    invader.Move(invaderDirection);
+                else
+                    foreach (Invader invader in invaderGrunts)
+                        invader.Move(invaderDirection);
+
+                MoveMotherShip();
                 framesSkipped = 0;
             } // end else
 
-        } // end method MoveInvaders
+        } // end method MoveInvaderGrunts
+
+        /// <summary>
+        /// This method moves the mothership from the 
+        /// left side of the screen to the right if it's active.
+        /// It'll remove the mothership if it gets from left to right 
+        /// with out getting shot.
+        /// </summary>
+        private void MoveMotherShip()
+        {
+            if (motherShip != null)
+            {
+                
+                    motherShip.Move(motherShipDirection);
+                    if (IsTouchingBorder(motherShip.Area, motherShipDirection, 20))
+                    {
+                        Explosion newExplosion = new Explosion(motherShip.Location, random);
+                        otherExplosions.Add(newExplosion);
+                        invaders.Remove(motherShip);
+
+                    } // end if 
+                } // end else
+           // } // end if 
+        } // end method MoveMotherShip
+
+        /// <summary>
+        /// This method checks to see if there are no other invader ships in the area
+        /// the mother ship flys by within. If there aren't any, the mothership appears.
+        /// </summary>
+        private void CheckToAddMotherShip() {
+            if (!mothershipHasAppeared)
+            {
+                List<Invader> invaderGrunts = new List<Invader>();
+                foreach (Invader invader in invaders)
+                    if (invader is InvaderGrunt)
+                        invaderGrunts.Add(invader);
+
+                var invadergruntsOnBorder =
+                      from invadergrunt in invaderGrunts
+                      where motherShipTravelArea.Contains(invadergrunt.Location)
+                      select invadergrunt;
+                if (invadergruntsOnBorder.Count() > 0) return;
+                else
+                {
+                    Explosion newExplosion = new Explosion(mothershipStartingLocation, random);
+                    otherExplosions.Add(newExplosion);
+                    motherShip = new MotherShip(mothershipStartingLocation);
+                    invaders.Add(motherShip);
+                    mothershipHasAppeared = true;
+
+                }
+            }
+        }
 
         /// <summary>
         /// This method checks to see if a rectangle traveling left or right is a certain number of pixels away from 
@@ -410,14 +513,14 @@ namespace Invaders
         /// <param name="direction">The current direction the rectangle is traveling.</param>
         /// <param name="pixelBoundary">The maximum amount of pixels away from the edge the rectangle can be.</param>
         /// <returns>A boolean representing whether or not the rectangle is on the established border.</returns>
-        private bool WillTouchBorder(Rectangle area, Direction direction, int pixelBoundary)
+        private bool IsTouchingBorder(Rectangle area, Direction direction, int pixelBoundary)
         {
             if (((direction == Direction.Right) &&
                 (area.Right + pixelBoundary > boundaries.Right)) ||
                 ((direction == Direction.Left) &&
                 (area.Left - pixelBoundary < boundaries.Left))) return true;
             else return false;
-        } // end method WillTouchBorder
+        } // end method IsTouchingBorder
 
         /// <summary>
         /// This method makes the invaders at the bottom fire shots if there aren't enough
@@ -495,7 +598,6 @@ namespace Invaders
                     foreach (var deadInvader in invaderCollisions)
                         deadInvaders.Add(deadInvader);
                     foreach (Invader deadInvader in deadInvaders) {
-                        score += deadInvader.Score;
                         KillInvader(deadInvader);
                     } // end foreach
                 } // end if
@@ -511,19 +613,53 @@ namespace Invaders
         {
             Explosion newDeadInvaderExplosion = new Explosion(deadInvader.Location, random);
             deadInvaderExplosions.Add(newDeadInvaderExplosion);
+            ScoreFlash newDeadInvaderScoreFlash = new ScoreFlash(deadInvader.Location, deadInvader.Score);
+            deadInvaderScores.Add(newDeadInvaderScoreFlash);
+            score += deadInvader.Score;
             invaders.Remove(deadInvader);
+            if (deadInvader is MotherShip) motherShip = null;
         } // end method KillInvader
 
         /// <summary>
         /// This method removes explosions from the explosion list when they're done exploding.
         /// </summary>
-        private void RemoveExplosions() {
+        private void RemoveDeadInvaderExplosions() {
             for (int i = deadInvaderExplosions.Count - 1; i >= 0; i--)
             {
                 if (!deadInvaderExplosions[i].Exploding)
                     deadInvaderExplosions.Remove(deadInvaderExplosions[i]);
             } // end for 
         } // end method RemoveExplosions
+
+        /// <summary>
+        /// This method removes explosions from the explosion list when they're done exploding.
+        /// </summary>
+        private void RemoveDeadInvaderScores()
+        {
+            for (int i = deadInvaderScores.Count - 1; i >= 0; i--)
+            {
+                if (!deadInvaderScores[i].Flashing)
+                    deadInvaderScores.Remove(deadInvaderScores[i]);
+            } // end for 
+        } // end method RemoveExplosions
+
+        /// <summary>
+        /// This method removes explosions from the explosion list when they're done exploding.
+        /// </summary>
+        private void RemoveOtherExplosions()
+        {
+            for (int i = otherExplosions.Count - 1; i >= 0; i--)
+            {
+                if (!otherExplosions[i].Exploding)
+                    otherExplosions.Remove(otherExplosions[i]);
+            } // end for 
+        } // end method RemoveExplosions
+
+        private void RemoveInactiveEffects() {
+            RemoveDeadInvaderExplosions();
+            RemoveDeadInvaderScores();
+            RemoveOtherExplosions();
+        }
 
         /// <summary>
         /// This method checks to see if any invaders are where the player is
@@ -534,7 +670,6 @@ namespace Invaders
                     from bottomInvader in invaders
                     where bottomInvader.Area.Bottom >= playerShip.Area.Bottom
                     select bottomInvader;
-
             if (invadersAtBottom.Count() > 0) { OnGameOver(new EventArgs());} // trigger game over.
         } // end method CheckForInvadersAtBottomOfScreen
         
@@ -544,6 +679,7 @@ namespace Invaders
             CheckForPlayerCollisions();
             CheckForInvadersAtBottomOfScreen();
         }
+
 
 
     }

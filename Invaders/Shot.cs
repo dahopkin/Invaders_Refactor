@@ -11,7 +11,7 @@ using System.Text;
 using System.Drawing;
 namespace Invaders
 {
-    class Shot
+    class Shot : AreaUser
     {
         private const int moveInterval = 20;
         private const int width = 5;
@@ -20,7 +20,7 @@ namespace Invaders
         /// <summary>
         /// Gets the current Point where the Shot is located.
         /// </summary>
-        public Point Location { get; private set; }
+        //public Point Location { get; private set; }
 
         private Direction direction;
         private Rectangle boundaries;
@@ -32,7 +32,7 @@ namespace Invaders
         /// <param name="direction"> The shot's direction.</param>
         /// <param name="boundaries">The rectangle representing the gaming area.</param>
         public Shot(Point location, Direction direction,
-            Rectangle boundaries){
+            Rectangle boundaries) : base(location, width, height){
 
             this.Location = location;
             this.direction = direction;
@@ -45,8 +45,9 @@ namespace Invaders
         /// <param name="g">The graphics object to draw onto.</param>
         public void Draw(Graphics g)
         {
-            g.FillRectangle(Brushes.Yellow, Location.X, Location.Y, width, height);
-            //throw new NotImplementedException();
+            //g.FillRectangle(Brushes.Yellow, Location.X, Location.Y, width, height);
+            //g.FillRectangle(Brushes.Yellow, Location.X, Location.Y, Area.Width, Area.Height);
+            g.FillRectangle(Brushes.Yellow, Area);
         } // end method Draw
 
         /// <summary>

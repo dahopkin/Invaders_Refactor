@@ -12,5 +12,6 @@ namespace Invaders
         Satellite,
         Spaceship,
         Star,
+        Mothership
     }
 }
