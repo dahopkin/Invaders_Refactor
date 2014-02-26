@@ -418,8 +418,8 @@ namespace Invaders
         } // end method CheckForInvaderShotShieldCollisions
 
         /// <summary>
-        /// This method moves invaders to within 100px of the game form's edge, then
-        /// moves them down and the opposite way.
+        /// This method moves invaders grunts to within 100px of the game form's edge, then
+        /// moves them down and the opposite way. It moves the mothership from left to right.
         /// </summary>
         private void MoveInvaders()
         {
