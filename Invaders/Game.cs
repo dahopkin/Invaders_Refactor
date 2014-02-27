@@ -64,8 +64,10 @@ namespace Invaders
             this.boundaries = boundaries;
             this.random = random;
             this.playerShipStartingLocation = new Point(boundaries.Right - 100, boundaries.Bottom - 50);
-            this.mothershipStartingLocation = new Point(boundaries.Left + 40, 50);
-            this.motherShipTravelArea = new Rectangle(new Point(boundaries.Left, 50), new Size(boundaries.Width, 40));
+            this.mothershipStartingLocation = new Point(boundaries.Left + 40, 90);
+            this.motherShipDirection = Direction.Right;
+            this.motherShip = null;
+            this.motherShipTravelArea = new Rectangle(new Point(boundaries.Left, 90), new Size(boundaries.Width, 40));
             this.playerShip = new PlayerShip(playerShipStartingLocation);
             this.playerShots = new List<Shot>();
             this.invaderShots = new List<Shot>();
@@ -74,8 +76,6 @@ namespace Invaders
             this.deadInvaderExplosions = new List<Explosion>();
             this.otherExplosions = new List<Explosion>();
             this.deadInvaderScores = new List<ScoreFlash>();
-            this.motherShipDirection = Direction.Right;
-            this.motherShip = null;
             this.mothershipHasAppeared = false;
             this.stars = new Stars(boundaries, random);
             for (int i = 0; i < livesLeft; i++)
@@ -125,18 +125,19 @@ namespace Invaders
             if (!playerShip.Alive) return;
             
             MovePlayerShots();
+            CheckForInvaderCollisions();
+
             MoveInvaderShots();
+            CheckForPlayerCollisions();
+
+            CheckForShieldCollisions();
+            CheckForInvadersAtBottomOfScreen();
+            CheckToAddMotherShip();
 
             MoveInvaders();
             ReturnFire();
 
             //MoveMotherShip();
-
-            CheckForShieldCollisions();
-            CheckForInvaderCollisions();
-            CheckForPlayerCollisions();
-            CheckForInvadersAtBottomOfScreen();
-            CheckToAddMotherShip();
 
             RemoveInactiveEffects();
 
@@ -293,9 +294,9 @@ namespace Invaders
             playerShots = new List<Shot>();
             deadInvaderExplosions = new List<Explosion>();
             deadInvaderScores = new List<ScoreFlash>();
-            mothershipStartingLocation = new Point(boundaries.Left + 40, 50);
-            motherShipTravelArea = new Rectangle(new Point(boundaries.Left, 50), new Size(boundaries.Width, 40));
-            motherShipDirection = Direction.Right;
+            //mothershipStartingLocation = new Point(boundaries.Left + 1, 50);
+            //motherShipTravelArea = new Rectangle(new Point(boundaries.Left, 50), new Size(boundaries.Width, 40));
+            //motherShipDirection = Direction.Right;
             motherShip = null;
             mothershipHasAppeared = false;
             ResetShields();
@@ -418,8 +419,7 @@ namespace Invaders
         } // end method CheckForInvaderShotShieldCollisions
 
         /// <summary>
-        /// This method moves invaders grunts to within 100px of the game form's edge, then
-        /// moves them down and the opposite way. It moves the mothership from left to right.
+        /// This method moves every invader on the screen.
         /// </summary>
         private void MoveInvaders()
         {
@@ -428,30 +428,38 @@ namespace Invaders
                 return;
             else
             {
-                List<Invader> invaderGrunts = new List<Invader>();
-                foreach (Invader invader in invaders)
-                    if (invader is InvaderGrunt)
-                        invaderGrunts.Add(invader);
-
-                var invadergruntsOnBorder =
-                      from invadergrunt in invaderGrunts
-                      where IsTouchingBorder(invadergrunt.Area, invaderDirection, invaderDistanceFromEdge)
-                      select invadergrunt;
-                if (invadergruntsOnBorder.Count() > 0)
-                {
-                    foreach (Invader invader in invaderGrunts)
-                        invader.Move(Direction.Down);
-                    invaderDirection = (invaderDirection == Direction.Left ? Direction.Right : Direction.Left);
-                } // end if
-                else
-                    foreach (Invader invader in invaderGrunts)
-                        invader.Move(invaderDirection);
-
+                MoveInvaderGrunts();
                 MoveMotherShip();
                 framesSkipped = 0;
             } // end else
 
-        } // end method MoveInvaderGrunts
+        } // end method MoveInvaders
+
+        /// <summary>
+        /// This method moves all the invader grunts to within 100px of the game form's edge, then
+        /// moves them down and the opposite way. 
+        /// </summary>
+        private void MoveInvaderGrunts()
+        {
+            List<Invader> invaderGrunts = new List<Invader>();
+            foreach (Invader invader in invaders)
+                if (invader is InvaderGrunt)
+                    invaderGrunts.Add(invader);
+
+            var invadergruntsOnBorder =
+                  from invadergrunt in invaderGrunts
+                  where IsTouchingBorder(invadergrunt.Area, invaderDirection, invaderDistanceFromEdge)
+                  select invadergrunt;
+            if (invadergruntsOnBorder.Count() > 0)
+            {
+                foreach (Invader invader in invaderGrunts)
+                    invader.Move(Direction.Down);
+                invaderDirection = (invaderDirection == Direction.Left ? Direction.Right : Direction.Left);
+            } // end if
+            else
+                foreach (Invader invader in invaderGrunts)
+                    invader.Move(invaderDirection);
+        }
 
         /// <summary>
         /// This method moves the mothership from the 
@@ -463,14 +471,13 @@ namespace Invaders
         {
             if (motherShip != null)
             {
-                
                     motherShip.Move(motherShipDirection);
                     if (IsTouchingBorder(motherShip.Area, motherShipDirection, 20))
                     {
                         Explosion newExplosion = new Explosion(motherShip.Location, random);
                         otherExplosions.Add(newExplosion);
                         invaders.Remove(motherShip);
-
+                        motherShip = null;
                     } // end if 
                 } // end else
            // } // end if 
