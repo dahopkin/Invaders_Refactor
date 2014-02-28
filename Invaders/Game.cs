@@ -25,7 +25,11 @@ namespace Invaders
         private int maxNumberOfWaves = 3;
         private int invaderDistanceFromEdge = 100;
         private int playerDistanceFromEdge = 10;
+        private int bombScore = 0;
+        private int bombsAvailable = 0;
+        private int bombRewardScore = 1000;
         private bool mothershipHasAppeared;
+        private bool gotPointsFromShots;
         
 
         private Rectangle boundaries; // the game's entire area for rendering.
@@ -38,12 +42,13 @@ namespace Invaders
         private Direction invaderDirection;
         private MotherShip motherShip;
 
-        private List<Invader> invaders;
-
         private PlayerShip playerShip;
+
+        private List<Invader> invaders;
         private List<Shot> playerShots;
-        private List<Bitmap> livesLeftDisplay;
         private List<Shot> invaderShots;
+        private List<Bomb> playerBombs;
+        private List<Bitmap> livesLeftDisplay;
         private List<Shield> shields;
         private List<Explosion> deadInvaderExplosions;
         private List<Explosion> otherExplosions;
@@ -70,6 +75,7 @@ namespace Invaders
             this.motherShipTravelArea = new Rectangle(new Point(boundaries.Left, 90), new Size(boundaries.Width, 40));
             this.playerShip = new PlayerShip(playerShipStartingLocation);
             this.playerShots = new List<Shot>();
+            this.playerBombs = new List<Bomb>();
             this.invaderShots = new List<Shot>();
             this.invaders = new List<Invader>();
             this.livesLeftDisplay = new List<Bitmap>();
@@ -106,6 +112,17 @@ namespace Invaders
             } // end if 
         } // end method FireShot
 
+        public void FirePlayerBomb()
+        {
+            //if (canUseBomb && bombsAvailable > 0)
+            if (bombsAvailable > 0)
+            {
+                Bomb newPlayerBomb = new Bomb(playerShip.Location, Direction.Up, boundaries);
+                playerBombs.Add(newPlayerBomb);
+                bombsAvailable--;
+            } // end if 
+        } // end method FireShot
+
         /// <summary>
         /// This method makes the stars twinkle in the background.
         /// </summary>
@@ -125,11 +142,13 @@ namespace Invaders
             if (!playerShip.Alive) return;
             
             MovePlayerShots();
+            MovePlayerBombs();
             CheckForInvaderCollisions();
 
             MoveInvaderShots();
             CheckForPlayerCollisions();
 
+            CheckBombStatus();
             CheckForShieldCollisions();
             CheckForInvadersAtBottomOfScreen();
             CheckToAddMotherShip();
@@ -166,6 +185,13 @@ namespace Invaders
                     playerShots.Remove(playerShots[i]);
         } // end method MovePlayerShots
 
+        private void MovePlayerBombs()
+        {
+            for (int i = playerBombs.Count - 1; i >= 0; i--)
+                if (!playerBombs[i].Move(Direction.Up))
+                    playerBombs.Remove(playerBombs[i]);
+        } // end method MovePlayerShots
+
         /// <summary>
         /// This method moves the player in a certain direction.
         /// </summary>
@@ -196,9 +222,12 @@ namespace Invaders
             
             foreach (Shot shot in playerShots)
                 shot.Draw(g);
+
+            DrawBombs(g);
             
             foreach (Shot shot in invaderShots)
                 shot.Draw(g);
+
 
             DrawExplosions(g);
 
@@ -210,7 +239,21 @@ namespace Invaders
 
             DrawLivesLeft(g);
 
+            DrawBombStatus(g);
+
         } // end method Draw
+
+        /// <summary>
+        /// This method draws bombs on the screen, keeping them paused if the 
+        /// player is getting killed.
+        /// </summary>
+        /// <param name="g">The Graphics object to draw onto</param>
+        private void DrawBombs(Graphics g)
+        {
+            if(playerShip.Alive)
+                foreach (Bomb bomb in playerBombs)
+                    bomb.Draw(g);
+        }
 
         /// <summary>
         /// This method draws all of the game's explosions onto the screen if they're exploding.
@@ -262,9 +305,29 @@ namespace Invaders
         } // end method DrawScoreAndWaveProgress
 
         /// <summary>
-        /// This method draws the amount of ships the player has left onto the upper right of the screen.
+        /// This method draws the score and wave progress onto the upper left of the screen.
         /// </summary>
         /// <param name="g">The graphics object to draw onto.</param>
+        private void DrawBombStatus(Graphics g)
+        {
+            string bombString = "";
+            if (bombsAvailable == 0)
+            {
+                bombString = "Earn " + (bombRewardScore - bombScore) + " more points with shots to earn a bomb.";
+            }
+            else if (bombsAvailable > 0) {
+                bombString = "You have " + bombsAvailable.ToString() + " Bomb(s). Type 'B' to use."
+                    + Environment.NewLine + "Earn " + (bombRewardScore - bombScore) + " points with shots to earn another.";
+            }
+            Font scoreFont = new Font("Arial", 12, FontStyle.Bold);
+            Point scorePoint = new Point(250, 25);
+            g.DrawString(bombString, scoreFont, Brushes.White, scorePoint);
+        } // end method DrawScoreAndWaveProgress
+
+        /// <summary>
+        /// This method draws the amount of ships the player has left onto the upper right of the screen.
+        /// </summary>
+        /// <param name="g">The Graphics object to draw onto.</param>
         private void DrawLivesLeft(Graphics g)
         {
             Point drawPoint = new Point(boundaries.Right - (livesLeft * playerShip.Area.Width), boundaries.Top + 10);
@@ -292,7 +355,9 @@ namespace Invaders
             invaderDirection = Direction.Right;
             invaderShots = new List<Shot>();
             playerShots = new List<Shot>();
+            playerBombs = new List<Bomb>();
             deadInvaderExplosions = new List<Explosion>();
+            otherExplosions = new List<Explosion>();
             deadInvaderScores = new List<ScoreFlash>();
             //mothershipStartingLocation = new Point(boundaries.Left + 1, 50);
             //motherShipTravelArea = new Rectangle(new Point(boundaries.Left, 50), new Size(boundaries.Width, 40));
@@ -309,7 +374,7 @@ namespace Invaders
             yPosition = AddInvaderRow(ShipType.Saucer, 30, xMove, yMove, xPosition, yPosition);
             yPosition = AddInvaderRow(ShipType.Spaceship, 20, xMove, yMove, xPosition, yPosition);
             yPosition = AddInvaderRow(ShipType.Star, 10, xMove, yMove, xPosition, yPosition);
-        } // end method
+        } // end method NextWave
 
         /// <summary>
         /// This method adds 6 invaders of a certain type to the invaders list collection. It returns the position 
@@ -337,7 +402,7 @@ namespace Invaders
         /// <summary>
         /// This method fills the shield list with 7 shields after emptying it.
         /// </summary>
-        /// <param name="g">The graphics object to draw onto.</param>
+        /// <param name="g">The Graphics object to draw onto.</param>
         private void ResetShields() {
             shields = new List<Shield>();
             Point startPoint = new Point(boundaries.Left + invaderDistanceFromEdge, boundaries.Bottom - (playerShip.Area.Height*5));
@@ -432,7 +497,6 @@ namespace Invaders
                 MoveMotherShip();
                 framesSkipped = 0;
             } // end else
-
         } // end method MoveInvaders
 
         /// <summary>
@@ -459,7 +523,7 @@ namespace Invaders
             else
                 foreach (Invader invader in invaderGrunts)
                     invader.Move(invaderDirection);
-        }
+        } // end method MoveInvaderGrunts
 
         /// <summary>
         /// This method moves the mothership from the 
@@ -484,7 +548,7 @@ namespace Invaders
         } // end method MoveMotherShip
 
         /// <summary>
-        /// This method checks to see if there are no other invader ships in the area
+        /// This method checks to see if there are no other invader ships in the rectangular area
         /// the mother ship flys by within. If there aren't any, the mothership appears.
         /// </summary>
         private void CheckToAddMotherShip() {
@@ -507,10 +571,16 @@ namespace Invaders
                     motherShip = new MotherShip(mothershipStartingLocation);
                     invaders.Add(motherShip);
                     mothershipHasAppeared = true;
+                } // end else 
+            } // end if 
+        } // end method CheckToAddMotherShip
 
-                }
-            }
-        }
+        private void CheckBombStatus() { 
+            if(bombScore >= bombRewardScore){
+                bombScore -= bombRewardScore;
+                bombsAvailable++;
+            } // end if 
+        } // end method CheckBombStatus
 
         /// <summary>
         /// This method checks to see if a rectangle traveling left or right is a certain number of pixels away from 
@@ -547,16 +617,19 @@ namespace Invaders
             if(invaderShots.Count >= currentInvaderWave + 1) return;
             else if (random.Next(10) < (10 - currentInvaderWave)) return; 
             else {
-                var invaderLocationGroups =
-                    from bottomInvader in invaders
-                    orderby bottomInvader.Location.Y descending
-                    group bottomInvader by bottomInvader.Location.X
-                    into invaderLocationGroup
-                    select invaderLocationGroup;
-                int randomInvaderNumber = random.Next(invaderLocationGroups.Count());
-                Invader shooter = invaderLocationGroups.ElementAt(randomInvaderNumber).First();
-                Shot newShot = new Shot(shooter.BottomMiddle, Direction.Up, boundaries);
-                invaderShots.Add(newShot);
+                if (invaders.Count > 0)
+                {
+                    var invaderLocationGroups =
+                                from bottomInvader in invaders
+                                orderby bottomInvader.Location.Y descending
+                                group bottomInvader by bottomInvader.Location.X
+                                    into invaderLocationGroup
+                                    select invaderLocationGroup;
+                    int randomInvaderNumber = random.Next(invaderLocationGroups.Count());
+                    Invader shooter = invaderLocationGroups.ElementAt(randomInvaderNumber).First();
+                    Shot newShot = new Shot(shooter.BottomMiddle, Direction.Up, boundaries);
+                    invaderShots.Add(newShot); 
+                } // end if 
             } // end else
         } // end method ReturnFire
 
@@ -579,37 +652,116 @@ namespace Invaders
         } // end method CheckForPlayerCollisions
 
         /// <summary>
-        /// This method checks to see if any of the player's shots have collided with an invader.
+        /// This method checks to see if any of the player's shots 
+        /// or bombs have collided with an invader.
         /// </summary>
-        private void CheckForInvaderCollisions() { 
-            for (int i = playerShots.Count - 1 ; i >= 0; i--)
-			{
+        private void CheckForInvaderCollisions() {
+            CheckForInvadersShot();
+            CheckForInvadersBombed();
+        }  // end method CheckForInvaderCollisions
+
+        /// <summary>
+        /// This method checks to see if an invader has been hit by a shot.
+        /// </summary>
+        private void CheckForInvadersShot()
+        {
+            for (int i = playerShots.Count - 1; i >= 0; i--)
+            {
                 /*
-                 * Note: For some reason, putting playerShots[i].Location directly into the 
+                 * Note: For some reason, putting playerShots[i].AllCollisionPoints directly into the 
                  * LINQ query below gives me an ArgumentOutOfRangeException. 
                  * Placing the location into its own variable fixed that.
                  */
-                Point shotLocation = playerShots[i].Location;
-                var invaderCollisions = 
+                List<Point> shotLocations = playerShots[i].AllCollisionPoints;
+                var invaderCollisions =
                     from hitInvader in invaders
-                    where hitInvader.Area.Contains(shotLocation)
+                    where WasHit(hitInvader, shotLocations)
                     select hitInvader;
 
-                if (invaderCollisions.Count() > 0) { 
+                if (invaderCollisions.Count() > 0)
+                {
                     // remove the shot from the player
                     // shot list.
                     playerShots.Remove(playerShots[i]);
                     // remove the invader(s) hit from the
                     // invaders list.
+                    gotPointsFromShots = true;
                     List<Invader> deadInvaders = new List<Invader>();
                     foreach (var deadInvader in invaderCollisions)
                         deadInvaders.Add(deadInvader);
-                    foreach (Invader deadInvader in deadInvaders) {
+                    foreach (Invader deadInvader in deadInvaders)
+                    {
                         KillInvader(deadInvader);
                     } // end foreach
                 } // end if
-			} // end for
-        }  // end method CheckForInvaderCollisions
+            } // end for
+        } // end method CheckForInvadersShot
+
+        /// <summary>
+        /// This method checks to see if an invader was hit by bomb, 
+        /// which expands outward and is different from a shot.
+        /// </summary>
+        private void CheckForInvadersBombed()
+        {
+            for (int i = playerBombs.Count - 1; i >= 0; i--)
+            {
+                if (!playerBombs[i].Exploded)
+                {
+                    List<Point> bombLocations = playerBombs[i].AllCollisionPoints;
+                    AreaUser expandingBomb = playerBombs[i];
+                    var invaderCollisions =
+                        from hitInvader in invaders
+                        where WasHit(hitInvader, expandingBomb)
+                        select hitInvader;
+
+                    if (invaderCollisions.Count() > 0)
+                    {
+
+                        gotPointsFromShots = false;
+                        if (!playerBombs[i].Expanding) playerBombs[i].Expanding = true;
+                        List<Invader> deadInvaders = new List<Invader>();
+                        foreach (var deadInvader in invaderCollisions)
+                            deadInvaders.Add(deadInvader);
+                        foreach (Invader deadInvader in deadInvaders)
+                        {
+                            KillInvader(deadInvader);
+                        } // end foreach
+                    } // end if
+                }
+                // If the bomb HAS exploded, remove it.
+                else playerBombs.Remove(playerBombs[i]);
+            }// end for
+        } // end method CheckForInvadersBombed
+
+        /// <summary>
+        /// This method checks to see if an invader was hit by an attack.
+        /// </summary>
+        /// <param name="hitInvader">The invader to check for hits.</param>
+        /// <param name="hitPointList">The list of points representing all points along the outer edge of the attack.</param>
+        /// <returns>A boolean indicating whether or not the invader was hit.</returns>
+        private bool WasHit(Invader hitInvader, List<Point> hitPointList) {
+            foreach(Point point in hitPointList)
+                if(hitInvader.Area.Contains(point)) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// This method checks to see if an invader was hit by an attack.
+        /// </summary>
+        /// <param name="hitInvader">The invader to check for hits.</param>
+        /// <param name="attackArea">The AreaUser reference to use to get 
+        /// a list of points representing all points along the outer edge of the attack.</param>
+        /// <returns>A boolean indicating whether or not the invader was hit.</returns>
+        private bool WasHit(Invader hitInvader, AreaUser attackArea)
+        {
+            List<Point> hitPointList = attackArea.AllCollisionPoints;
+            List<Point> invaderCollisionList = hitInvader.AllCollisionPoints;
+            foreach (Point point in hitPointList)
+                if (hitInvader.Area.Contains(point)) return true;
+            foreach (Point point in invaderCollisionList)
+                if (attackArea.Area.Contains(point)) return true;
+            return false;
+        }
 
         /// <summary>
         /// This method removes an invader from the invaders list and 
@@ -623,20 +775,12 @@ namespace Invaders
             ScoreFlash newDeadInvaderScoreFlash = new ScoreFlash(deadInvader.Location, deadInvader.Score);
             deadInvaderScores.Add(newDeadInvaderScoreFlash);
             score += deadInvader.Score;
+            if (gotPointsFromShots) bombScore += deadInvader.Score;
             invaders.Remove(deadInvader);
             if (deadInvader is MotherShip) motherShip = null;
         } // end method KillInvader
 
-        /// <summary>
-        /// This method removes explosions from the explosion list when they're done exploding.
-        /// </summary>
-        private void RemoveDeadInvaderExplosions() {
-            for (int i = deadInvaderExplosions.Count - 1; i >= 0; i--)
-            {
-                if (!deadInvaderExplosions[i].Exploding)
-                    deadInvaderExplosions.Remove(deadInvaderExplosions[i]);
-            } // end for 
-        } // end method RemoveExplosions
+        
 
         /// <summary>
         /// This method removes explosions from the explosion list when they're done exploding.
@@ -651,7 +795,19 @@ namespace Invaders
         } // end method RemoveExplosions
 
         /// <summary>
-        /// This method removes explosions from the explosion list when they're done exploding.
+        /// This method removes explosions from the non-invader explosion list when they're done exploding.
+        /// </summary>
+        private void RemoveDeadInvaderExplosions()
+        {
+            for (int i = deadInvaderExplosions.Count - 1; i >= 0; i--)
+            {
+                if (!deadInvaderExplosions[i].Exploding)
+                    deadInvaderExplosions.Remove(deadInvaderExplosions[i]);
+            } // end for 
+        } // end method RemoveDeadInvaderExplosions
+
+        /// <summary>
+        /// This method removes explosions from the non-invader explosion list when they're done exploding.
         /// </summary>
         private void RemoveOtherExplosions()
         {
@@ -662,6 +818,10 @@ namespace Invaders
             } // end for 
         } // end method RemoveExplosions
 
+        /// <summary>
+        /// This method removes timed effects that are no longer showing
+        /// from their respective lists.
+        /// </summary>
         private void RemoveInactiveEffects() {
             RemoveDeadInvaderExplosions();
             RemoveDeadInvaderScores();
@@ -679,15 +839,6 @@ namespace Invaders
                     select bottomInvader;
             if (invadersAtBottom.Count() > 0) { OnGameOver(new EventArgs());} // trigger game over.
         } // end method CheckForInvadersAtBottomOfScreen
-        
-        private void CheckCollisions()
-        {
-            CheckForInvaderCollisions();
-            CheckForPlayerCollisions();
-            CheckForInvadersAtBottomOfScreen();
-        }
 
-
-
-    }
+    } // end Class Game
 }

@@ -139,6 +139,28 @@ namespace Invaders
                 };
             } // end get 
         } // end property CollisionPoints
+
+        /// <summary>
+        /// Gets a list of points representing all corners and middles of the object's area.
+        /// </summary>
+        public List<Point> AllCollisionPoints
+        {
+            get
+            {
+                List<Point> allCollisionPoints = new List<Point>();
+                for (int i = Area.Left; i <= Area.Width; i++)
+                {
+                    allCollisionPoints.Add(new Point(i, Area.Top));
+                    allCollisionPoints.Add(new Point(i, Area.Bottom));
+                }
+                for (int i = Area.Top; i <= Area.Bottom; i++)
+                {
+                    allCollisionPoints.Add(new Point(Area.Left, i));
+                    allCollisionPoints.Add(new Point(Area.Right, i));
+                }
+                return allCollisionPoints;
+            } // end get 
+        } // end property CollisionPoints
         
     }
 }

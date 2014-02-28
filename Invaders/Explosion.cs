@@ -22,7 +22,7 @@ namespace Invaders
         /// <param name="random">An instance of the Random class for use in functions needing a random.</param>
         public Explosion(Point location, Random random) : base(location, 40, 40)
         {
-            this.Location = location;
+            //this.Location = location;
             this.random = random;
             explosionParticles = new List<Star>();
             AddParticles(500);
@@ -84,7 +84,7 @@ namespace Invaders
         {
             Pen penToReturn = new Pen(Brushes.White);
 
-            int colorSelectNumber = random.Next(10);
+            int colorSelectNumber = random.Next(5);
 
             switch (colorSelectNumber)
             {
@@ -95,12 +95,9 @@ namespace Invaders
                     penToReturn.Brush = Brushes.Yellow;
                     break;
                 case 2:
-                case 3:
                     penToReturn.Brush = Brushes.Red;
                     break;
-                case 4:
-                case 5:
-                case 6:
+                case 3:
                     penToReturn.Brush = Brushes.Orange;
                     break;
                 default:

@@ -24,8 +24,7 @@ namespace Invaders
         {
             InitializeInvaderImages(InvaderType);
             image = invaderImages[0];
-            
-        } // end constructor
+        } // end constructor method InvaderGrunt
 
         /// <summary>
         /// Draws an invader onto the screen from a Graphics object and a number for current animation cell.
@@ -77,7 +76,6 @@ namespace Invaders
                 ResizeImage(Properties.Resources.bug3, areaSize.Width, areaSize.Height),
                 ResizeImage(Properties.Resources.bug4, areaSize.Width, areaSize.Height)
             };
-
             return bugImages;
         } // end method GetBugImages
 

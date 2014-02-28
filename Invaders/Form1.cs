@@ -21,6 +21,7 @@ namespace Invaders
         int animationCounter;
         bool reverseInvaderAnimation;
         bool gameOver;
+        bool paused;
         Game game;
         Random random = new Random();
         List<Keys> keysPressed = new List<Keys>();
@@ -36,6 +37,7 @@ namespace Invaders
             game = new Game(this.ClientRectangle, random);
             game.GameOver += new EventHandler(game_GameOver);
             gameOver = false;
+            paused = false;
             reverseInvaderAnimation = false;
             animationCounter = 0;
             animationTimer.Enabled = true;
@@ -68,6 +70,7 @@ namespace Invaders
         /*If the user types Q at any point, the game quits.
          If game is over and the user types S, the game restarts.
          If the user types space, a shot fires.
+         If the user has a bomb and tpes B, a bomb fires.
          */
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
@@ -85,6 +88,23 @@ namespace Invaders
 
             if (e.KeyCode == Keys.Space)
                game.FirePlayerShot();
+
+            if (e.KeyCode == Keys.B)
+                game.FirePlayerBomb();
+
+            if (e.KeyCode == Keys.P) {
+                if (!paused) {
+                    gameTimer.Enabled = false;
+                    animationTimer.Enabled = false;
+                    paused = true;
+                }
+                else{
+                    gameTimer.Enabled = true;
+                    animationTimer.Enabled = true;
+                    paused = false;
+                }
+
+            }
 
             if (keysPressed.Contains(e.KeyCode))
                 keysPressed.Remove(e.KeyCode);

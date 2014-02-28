@@ -17,24 +17,17 @@ namespace Invaders
         private const int width = 5;
         private const int height = 15;
 
-        /// <summary>
-        /// Gets the current Point where the Shot is located.
-        /// </summary>
-        //public Point Location { get; private set; }
-
         private Direction direction;
         private Rectangle boundaries;
 
         /// <summary>
-        /// Instantiates a new instance of the Shot Class from a location, a direction, and a boundary rectangle.
+        /// Instantiates a new instance of the Shot class from a location, a direction, and a boundary rectangle.
         /// </summary>
         /// <param name="location">The shot's starting location</param>
         /// <param name="direction"> The shot's direction.</param>
         /// <param name="boundaries">The rectangle representing the gaming area.</param>
         public Shot(Point location, Direction direction,
             Rectangle boundaries) : base(location, width, height){
-
-            this.Location = location;
             this.direction = direction;
             this.boundaries = boundaries;
         } // end constructor method Shot
@@ -42,11 +35,9 @@ namespace Invaders
         /// <summary>
         /// This method draws a yellow rectangle representing a shot onto the screen.
         /// </summary>
-        /// <param name="g">The graphics object to draw onto.</param>
+        /// <param name="g">The Graphics object to draw onto.</param>
         public void Draw(Graphics g)
         {
-            //g.FillRectangle(Brushes.Yellow, Location.X, Location.Y, width, height);
-            //g.FillRectangle(Brushes.Yellow, Location.X, Location.Y, Area.Width, Area.Height);
             g.FillRectangle(Brushes.Yellow, Area);
         } // end method Draw
 
@@ -74,5 +65,5 @@ namespace Invaders
             return true;
         } // end method Move
 
-       }
+       } // end Class Shot 
 }

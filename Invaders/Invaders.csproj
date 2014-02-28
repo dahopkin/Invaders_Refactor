@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AreaUser.cs" />
+    <Compile Include="Bomb.cs" />
     <Compile Include="MotherShip.cs" />
     <Compile Include="InvaderGrunt.cs" />
     <Compile Include="ScoreFlash.cs" />
@@ -83,7 +84,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="ClassDiagram1.cd" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
